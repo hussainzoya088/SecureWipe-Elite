@@ -55,23 +55,14 @@ securewipe-elite/
 └── README.md
 ⚙️ How to Run (Simple HTML Setup)
 ✅ Step 1: Open Dashboard
-
 Just open the HTML file:
-
 index.html
-
 OR right-click → Open with Browser
-
 ✅ Step 2: Run Backend (Optional but Recommended)
-
 Make sure Node.js is installed.
-
 Run:
-
 node backend.js
 ✅ Step 3: Open in Browser
 http://localhost:5173
-
 OR directly:
-
 file:///path-to-your-project/index.html
