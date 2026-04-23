@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECUREWIPE ELITE </title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #2563eb; --danger: #dc2626; --success: #16a34a;
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Layout */
+        .app-container { display: grid; grid-template-columns: 280px 1fr; grid-template-rows: 70px 1fr 40px; height: 100vh; }
+        header { grid-column: 1 / span 2; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; z-index: 100; }
+        aside { background: #111827; border-right: 1px solid #334155; padding: 20px 0; overflow-y: auto; }
+        main { overflow-y: auto; position: relative; scroll-behavior: smooth; background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%); }
+        footer { grid-column: 1 / span 2; background: #020617; border-top: 1px solid #334155; display: flex; align-items: center; overflow: hidden; }
+
+        /* Navigation */
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: #94a3b8; cursor: pointer; transition: 0.3s; font-size: 13px; font-weight: 600; }
+        .nav-item:hover { background: #1e293b; color: #fff; }
+        .nav-active { background: #2563eb33; color: #60a5fa; border-right: 4px solid #2563eb; }
+        
+        /* Pages */
+        .page { display: none; padding: 40px; animation: slideIn 0.4s ease-out; }
+        .page.active { display: block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Components */
+        .card { background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+        .stat-val { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+        
+        /* Animations */
+        .pulse-red { animation: pulseRed 2s infinite; }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0px rgba(220, 38, 38, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0px rgba(220, 38, 38, 0); } }
+        
+        .ticker-text { white-space: nowrap; animation: ticker 30s linear infinite; font-family: 'JetBrains Mono'; font-size: 12px; color: #60a5fa; }
+        @keyframes ticker { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+
+        /* Ghost Visualizer Styles */
+        .ghost { position: absolute; transition: all 2s ease-in-out; cursor: pointer; z-index: 10; }
+        .vaporize { transform: scale(0) rotate(360deg); opacity: 0 !important; filter: blur(20px); }
+
+        /* Voice Visualizer */
+        .v-bar { width: 4px; background: #22d3ee; margin: 0 1px; transition: height 0.1s; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <div class="app-container">
+        <header>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black text-xl">S</div>
+                <div>
+                    <h1 class="text-lg font-black tracking-tighter">SECUREWIPE <span class="text-blue-500">ELITE</span></h1>
+                    <p class="text-[9px] font-bold text-slate-400 tracking-[0.2em]">IEEE BENGALURU NODE // V4.0</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-8">
+                <div id="global-threat" class="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
+                    <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                    <span class="text-[10px] font-bold text-red-500 uppercase">Global Threat Level: Elevated</span>
+                </div>
+                <div id="clock" class="mono text-xl font-bold text-blue-400">00:00:00</div>
+            </div>
+        </header>
+
+        <aside>
+            <nav id="nav-list">
+                <div class="nav-item nav-active" onclick="showPage('dash', this)">📊 Dashboard</div>
+                <div class="nav-item" onclick="showPage('usb', this)">🔌 USB Radar</div>
+                <div class="nav-item" onclick="showPage('voice', this)">🎤 Voice Commander</div>
+                <div class="nav-item" onclick="showPage('ai', this)">🤖 AI Assistant</div>
+                <div class="nav-item" onclick="showPage('entropy', this)">📈 Entropy Live</div>
+                <div class="nav-item" onclick="showPage('ghost', this)">👻 Ghost Visualizer</div>
+                <div class="nav-item" onclick="showPage('quantum', this)">⚛️ Quantum Timeline</div>
+                <div class="nav-item" onclick="showPage('risk', this)">🧠 Neural Risk</div>
+                <div class="nav-item" onclick="showPage('roi', this)">💰 ROI Calc</div>
+                <div class="nav-item" onclick="showPage('chain', this)">⛓️ Blockchain Logs</div>
+                <div class="nav-item" onclick="showPage('hacker', this)">💀 Hacker Lab</div>
+                <div class="nav-item" onclick="showPage('breach', this)">🆚 Breach Sim</div>
+            </nav>
+            <div class="mt-10 px-6">
+                <div class="p-4 bg-blue-600/10 border border-blue-600/20 rounded-xl">
+                    <p class="text-[10px] font-bold text-blue-400 uppercase mb-2">Shortcuts</p>
+                    <div class="grid grid-cols-2 gap-2 text-[9px] mono text-slate-400">
+                        <span>[D] Dash</span><span>[U] USB</span>
+                        <span>[V] Voice</span><span>[H] Hacker</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main id="main-content">
+            <section id="p-dash" class="page active">
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="card border-l-4 border-red-600">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Total Exposure</p>
+                        <div id="dash-exposure" class="stat-val text-red-500 tabular-nums">$4,280,000</div>
+                    </div>
+                    <div class="card border-l-4 border-blue-600">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Secure Index</p>
+                        <div class="flex items-end gap-3">
+                            <div class="stat-val text-blue-500">94.2%</div>
+                            <div class="flex-1 h-2 bg-slate-700 rounded-full mb-3"><div class="h-full bg-blue-500 w-[94%] rounded-full"></div></div>
+                        </div>
+                    </div>
+                    <div class="card border-l-4 border-green-600">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Asset Health</p>
+                        <div class="stat-val text-green-500">OPTIMAL</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="card">
+                        <h3 class="text-sm font-black uppercase mb-4 text-blue-400">Regional Data Liability</h3>
+                        <table class="w-full text-xs">
+                            <thead><tr class="text-slate-500 border-b border-slate-700"><th class="text-left pb-2">Node</th><th class="text-left pb-2">Liability</th><th class="text-right pb-2">Status</th></tr></thead>
+                            <tbody class="divide-y divide-slate-800">
+                                <tr class="h-10"><td>Electronic City Node</td><td class="text-red-400">4.2 TB AT RISK</td><td class="text-right"><span class="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></span>Critical</td></tr>
+                                <tr class="h-10"><td>Whitefield Storage</td><td class="text-green-400">SECURED</td><td class="text-right"><span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>Compliant</td></tr>
+                                <tr class="h-10"><td>Indiranagar Office</td><td class="text-yellow-400">PENDING AUDIT</td><td class="text-right"><span class="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>Warning</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card bg-slate-900/50 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-black uppercase mb-2 text-blue-400">Security Summary</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">SecureWipe Elite is managing 14 storage nodes across Bengaluru. Current protocol: NIST 800-88 Purge. No unencrypted data leaks detected in last 24 hours.</p>
+                        </div>
+                        <button onclick="showPage('usb')" class="mt-4 w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-black text-xs uppercase tracking-widest transition-all">Access Hardware Radar</button>
+                    </div>
+                </div>
+
+                <div class="card relative overflow-hidden" style="height: 400px;">
+                    <h3 class="absolute top-4 left-4 text-xs font-bold uppercase z-10 text-slate-500">Real-time Asset Topology</h3>
+                    <canvas id="networkCanvas" class="w-full h-full"></canvas>
+                    <div id="node-popup" class="absolute hidden bg-slate-900 border border-blue-500 p-2 rounded text-[10px] z-20"></div>
+                </div>
+
+                <div class="mt-8 flex justify-center">
+                    <button id="global-purge-btn" onclick="triggerGlobalPurge()" class="px-12 py-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xl uppercase tracking-widest shadow-2xl transition-transform active:scale-95 pulse-red">
+                        Execute Destruction
+                    </button>
+                </div>
+            </section>
+
+            <section id="p-usb" class="page">
+                <div class="flex items-center gap-3 mb-8">
+                    <h2 class="text-3xl font-black uppercase tracking-tighter">USB Asset Radar</h2>
+                    <span class="w-3 h-3 bg-green-500 rounded-full animate-ping"></span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-8">
+                    <div class="col-span-2 space-y-6">
+                        <div class="card flex gap-6 hover:border-red-500/50 transition-colors group">
+                            <div class="w-24 h-24 bg-slate-800 rounded-xl flex items-center justify-center text-4xl">💾</div>
+                            <div class="flex-1 grid grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="text-lg font-bold">SanDisk Ultra USB 3.0</h4>
+                                    <p class="mono text-[10px] text-slate-500">SN: 4C531001550706</p>
+                                    <div class="mt-2 flex gap-4 text-[10px] font-bold">
+                                        <span class="text-blue-400">64.0 GB</span>
+                                        <span class="text-slate-500">USB 3.0</span>
+                                        <span class="text-green-500">SMART: OK</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[9px] font-bold text-slate-500 mb-1 uppercase">Risk Score</p>
+                                    <div class="text-2xl font-black text-yellow-500">68/100</div>
+                                    <button onclick="openWipeModal('SanDisk Ultra')" class="mt-2 px-6 py-2 bg-red-600 rounded-lg text-[10px] font-black uppercase">Wipe This Drive</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card flex gap-6 hover:border-orange-500/50 transition-colors">
+                            <div class="w-24 h-24 bg-slate-800 rounded-xl flex items-center justify-center text-4xl">💽</div>
+                            <div class="flex-1 grid grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="text-lg font-bold">Seagate Expansion 2TB</h4>
+                                    <p class="mono text-[10px] text-slate-500">SN: NA8PVBX1</p>
+                                    <div class="mt-2 flex gap-4 text-[10px] font-bold">
+                                        <span class="text-blue-400">2000 GB</span>
+                                        <span class="text-slate-500">SATA III</span>
+                                        <span class="text-green-500">SMART: OK</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[9px] font-bold text-slate-500 mb-1 uppercase">Risk Score</p>
+                                    <div class="text-2xl font-black text-orange-500">81/100</div>
+                                    <button onclick="openWipeModal('Seagate Expansion')" class="mt-2 px-6 py-2 bg-red-600 rounded-lg text-[10px] font-black uppercase">Wipe This Drive</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div class="card">
+                            <h3 class="text-xs font-black uppercase mb-4 text-blue-400">Hot-Plug Event Log</h3>
+                            <div id="usb-log" class="mono text-[9px] space-y-2 h-48 overflow-y-auto"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="card p-3 text-center"><p class="text-[8px] font-bold text-slate-500 uppercase">Detected</p><p class="text-xl font-black">02</p></div>
+                            <div class="card p-3 text-center"><p class="text-[8px] font-bold text-slate-500 uppercase">High Risk</p><p class="text-xl font-black text-red-500">01</p></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="p-voice" class="page">
+                <div class="max-w-3xl mx-auto py-10">
+                    <div class="text-center mb-12">
+                        <h2 class="text-4xl font-black uppercase mb-4">Voice Commander</h2>
+                        <p class="text-slate-400">Neural-Audio Interface for Hands-Free Sanitization</p>
+                    </div>
+
+                    <div class="flex gap-8 items-start">
+                        <div class="flex-1 flex flex-col items-center">
+                            <div id="mic-btn" onclick="toggleVoice()" class="w-48 h-48 rounded-full border-4 border-cyan-500/30 flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 bg-slate-800 shadow-[0_0_50px_-12px_rgba(34,211,238,0.3)]">
+                                <div id="mic-icon" class="text-6xl">🎤</div>
+                            </div>
+                            <p id="mic-hint" class="mt-6 text-xs font-bold text-cyan-400 uppercase tracking-widest">Click to Activate Voice Control</p>
+                            
+                            <div id="waveform" class="mt-8 flex items-end h-16 gap-1 opacity-0 transition-opacity">
+                                </div>
+                        </div>
+
+                        <div class="w-80 space-y-6">
+                            <div class="card">
+                                <h3 class="text-xs font-black uppercase mb-4 text-blue-400">Real-time Transcript</h3>
+                                <div id="transcript-box" class="h-48 overflow-y-auto space-y-3 mono text-xs">
+                                    <div class="text-slate-500 italic text-[10px]">Listening for command...</div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="simulateVoice('scan')" class="py-2 bg-slate-800 border border-slate-700 rounded text-[10px] font-bold hover:bg-slate-700">Test Scan</button>
+                                <button onclick="simulateVoice('report')" class="py-2 bg-slate-800 border border-slate-700 rounded text-[10px] font-bold hover:bg-slate-700">Test Report</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-12">
+                        <h3 class="text-xs font-black mb-4 uppercase text-slate-500">Voice Command Syntax</h3>
+                        <div class="grid grid-cols-3 gap-4 text-[11px]">
+                            <div class="p-3 bg-slate-900 rounded border border-slate-800"><b>"Scan"</b>: USB Radar</div>
+                            <div class="p-3 bg-slate-900 rounded border border-slate-800"><b>"Wipe"</b>: Confirm Wipe</div>
+                            <div class="p-3 bg-slate-900 rounded border border-slate-800"><b>"Dashboard"</b>: Main Menu</div>
+                            <div class="p-3 bg-slate-900 rounded border border-slate-800"><b>"Hacker"</b>: Simulation</div>
+                            <div class="p-3 bg-slate-900 rounded border border-slate-800"><b>"Report"</b>: Download PDF</div>
+                            <div class="p-3 bg-slate-900 rounded border border-slate-800"><b>"Help"</b>: List Commands</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="p-entropy" class="page">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="text-3xl font-black uppercase">Shannon Entropy Analyzer</h2>
+                        <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Real-time Bitwise Randomness measurement</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] font-black text-blue-400 uppercase mb-1">Average Entropy</p>
+                        <div id="entropy-number" class="text-6xl font-black tabular-nums">2.66</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-6">
+                    <div class="col-span-3 card h-[450px]">
+                        <canvas id="entropyChart"></canvas>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="card">
+                            <h3 class="text-xs font-black uppercase mb-4 text-blue-400">Bit Statistics</h3>
+                            <div id="entropy-stats" class="space-y-4 mono text-xs">
+                                <div class="flex justify-between"><span>Mean:</span><span id="stat-mean">2.66</span></div>
+                                <div class="flex justify-between"><span>Std Dev:</span><span id="stat-std">1.12</span></div>
+                                <div class="flex justify-between"><span>Min:</span><span id="stat-min">0.82</span></div>
+                                <div class="flex justify-between"><span>Max:</span><span id="stat-max">4.21</span></div>
+                                <div class="pt-4 border-t border-slate-700">
+                                    <p class="text-[10px] mb-2 font-bold text-slate-500 uppercase">Recovery Prob.</p>
+                                    <div class="text-xl font-black text-red-500" id="stat-prob">98.2%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="startEntropyTest()" id="entropy-btn" class="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-black text-sm uppercase tracking-widest transition-all">Start Wipe Analysis</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="p-ghost" class="page h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-3xl font-black uppercase">Deleted File Ghost Scanner</h2>
+                    <div class="text-right">
+                        <p class="text-[10px] font-black text-slate-500 uppercase">Recoverable Ghosts</p>
+                        <h4 id="ghost-counter" class="text-2xl font-black text-red-500">2847</h4>
+                    </div>
+                </div>
+
+                <div id="ghost-stage" class="relative card h-[500px] overflow-hidden bg-slate-950 border-2 border-slate-800 flex items-center justify-center">
+                    <div id="hdd-visual" class="w-64 h-64 border-[16px] border-slate-800 rounded-full flex items-center justify-center relative shadow-[0_0_100px_rgba(30,41,59,0.5)]">
+                        <div class="w-12 h-12 bg-slate-700 rounded-full z-20 border-4 border-slate-800"></div>
+                        <div class="absolute inset-0 border-4 border-slate-700 rounded-full animate-[spin_5s_linear_infinite]"></div>
+                    </div>
+                    </div>
+
+                <div class="mt-8 flex justify-center">
+                    <button onclick="exorciseGhosts()" class="px-16 py-5 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-black text-lg uppercase tracking-widest shadow-2xl transition-all">Exorcise All Files</button>
+                </div>
+            </section>
+
+            <section id="p-quantum" class="page">
+                <h2 class="text-3xl font-black uppercase mb-2">Quantum Threat Timeline</h2>
+                <p class="text-xs text-slate-400 mb-12 font-bold tracking-widest uppercase">Post-quantum cryptography readiness assessment</p>
+
+                <div class="card py-16 px-10 mb-10 relative">
+                    <div class="absolute inset-x-10 top-1/2 h-1 bg-slate-700 -translate-y-1/2"></div>
+                    <div class="relative flex justify-between">
+                        <div class="text-center group relative cursor-pointer" style="width: 80px;">
+                            <div class="w-10 h-10 bg-green-500 rounded-full mx-auto mb-4 border-4 border-slate-900 z-10 relative flex items-center justify-center">🛡️</div>
+                            <span class="text-xs font-black">2025</span>
+                            <div class="opacity-0 group-hover:opacity-100 absolute -top-20 left-1/2 -translate-x-1/2 w-48 p-2 bg-slate-900 border border-green-500 rounded text-[10px] transition-opacity"><b>SecureWipe Active</b><br>Post-Quantum Lattice encryption deployed.</div>
+                        </div>
+                        <div class="text-center group relative cursor-pointer" style="width: 80px;">
+                            <div class="w-10 h-10 bg-red-500 rounded-full mx-auto mb-4 border-4 border-slate-900 z-10 relative animate-pulse"></div>
+                            <span class="text-xs font-black">2029</span>
+                            <div class="opacity-0 group-hover:opacity-100 absolute -top-20 left-1/2 -translate-x-1/2 w-48 p-2 bg-slate-900 border border-red-500 rounded text-[10px] transition-opacity"><b>RSA-2048 Broken</b><br>Shor's Algorithm achieves 4096-qubit stability.</div>
+                        </div>
+                        <div class="text-center group relative cursor-pointer" style="width: 80px;">
+                            <div class="w-10 h-10 bg-orange-500 rounded-full mx-auto mb-4 border-4 border-slate-900 z-10 relative"></div>
+                            <span class="text-xs font-black">2033</span>
+                            <div class="opacity-0 group-hover:opacity-100 absolute -top-20 left-1/2 -translate-x-1/2 w-48 p-2 bg-slate-900 border border-orange-500 rounded text-[10px] transition-opacity"><b>ECC Compromised</b><br>Curve25519 no longer secure against quantum search.</div>
+                        </div>
+                        <div class="text-center group relative cursor-pointer" style="width: 80px;">
+                            <div class="w-10 h-10 bg-blue-500 rounded-full mx-auto mb-4 border-4 border-slate-900 z-10 relative"></div>
+                            <span class="text-xs font-black">2075</span>
+                            <div class="opacity-0 group-hover:opacity-100 absolute -top-20 left-1/2 -translate-x-1/2 w-48 p-2 bg-slate-900 border border-blue-500 rounded text-[10px] transition-opacity"><b>AES-256 Valid</b><br>Grover's Algorithm bit-reduction still leaves 128-bits of security.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-xs font-black mb-6 uppercase text-blue-400">Cryptographic Standard Comparison</h3>
+                    <table class="w-full text-xs">
+                        <thead><tr class="text-slate-500 text-left border-b border-slate-800"><th class="pb-2">Algorithm</th><th class="pb-2">Status</th><th class="pb-2">Quantum Vulnerable</th><th class="text-right pb-2">In SecureWipe</th></tr></thead>
+                        <tbody class="divide-y divide-slate-800">
+                            <tr class="h-10"><td>RSA-2048</td><td class="text-red-500 font-bold uppercase">Avoid</td><td>2029</td><td class="text-right text-red-500">✖</td></tr>
+                            <tr class="h-10"><td>AES-128</td><td class="text-orange-500 font-bold uppercase">Warning</td><td>2031</td><td class="text-right text-red-500">✖</td></tr>
+                            <tr class="h-10"><td>AES-256</td><td class="text-green-500 font-bold uppercase">Active</td><td>2075+</td><td class="text-right text-green-500">✔</td></tr>
+                            <tr class="h-10"><td>Crystals-Dilithium</td><td class="text-blue-500 font-bold uppercase">P-Quantum</td><td>Secure</td><td class="text-right text-green-500">✔</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="p-risk" class="page">
+                <h2 class="text-3xl font-black uppercase mb-8">Neural Network Risk Engine</h2>
+                
+                <div class="grid grid-cols-3 gap-8">
+                    <div class="col-span-2 card bg-slate-900/80">
+                        <canvas id="neuralCanvas" height="400" class="w-full"></canvas>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="card">
+                            <h3 class="text-xs font-black uppercase mb-6 text-blue-400">Risk Assessment</h3>
+                            <div class="text-center py-6">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase mb-2">Final Probability Score</p>
+                                <div id="risk-out-val" class="text-7xl font-black text-green-500">22%</div>
+                                <div id="risk-level" class="mt-4 px-4 py-1 bg-green-500/20 text-green-500 text-[10px] font-bold uppercase rounded-full inline-block">Low Risk</div>
+                            </div>
+                        </div>
+                        <div class="card space-y-4">
+                            <div><label class="text-[10px] font-bold uppercase text-slate-500">Device Age</p><input type="range" class="risk-in w-full accent-blue-500 h-1 bg-slate-700 rounded-lg"></div>
+                            <div><label class="text-[10px] font-bold uppercase text-slate-500">Department Risk</p><input type="range" class="risk-in w-full accent-red-500 h-1 bg-slate-700 rounded-lg"></div>
+                            <div><label class="text-[10px] font-bold uppercase text-slate-500">Storage Type</p><input type="range" class="risk-in w-full accent-green-500 h-1 bg-slate-700 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="p-roi" class="page">
+                <h2 class="text-3xl font-black uppercase mb-2">Financial Impact Calculator</h2>
+                <p class="text-xs text-slate-400 mb-12 font-bold tracking-widest uppercase">IBM Cost of Data Breach 2024 Methodology</p>
+
+                <div class="grid grid-cols-3 gap-8">
+                    <div class="card space-y-8">
+                        <div>
+                            <div class="flex justify-between mb-4 text-xs font-bold"><span class="text-slate-400">Unwiped Devices</span><span class="text-blue-400" id="roi-n-val">47</span></div>
+                            <input type="range" id="roi-n" min="1" max="500" value="47" oninput="updateROI()" class="w-full accent-blue-600 h-1 bg-slate-700 rounded-lg">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-4 text-xs font-bold"><span class="text-slate-400">Data Sensitivity</span><span class="text-red-400" id="roi-s-val">Secret</span></div>
+                            <input type="range" id="roi-s" min="1" max="5" value="3" oninput="updateROI()" class="w-full accent-red-600 h-1 bg-slate-700 rounded-lg">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Industry Risk</div>
+                            <select id="roi-i" onchange="updateROI()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="1.4">Healthcare</option>
+                                <option value="1.2">Finance</option>
+                                <option value="1.0" selected>Government</option>
+                                <option value="0.8">Retail</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-span-2 grid grid-cols-2 gap-6">
+                        <div class="card bg-red-600/5 border-red-600/20">
+                            <h3 class="text-[10px] font-black uppercase text-red-500 mb-6 tracking-widest">Without SecureWipe</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-xs"><span class="text-slate-400">Estimated Breach:</span><span class="font-bold text-red-400" id="roi-b-cost">$4.28M</span></div>
+                                <div class="flex justify-between text-xs"><span class="text-slate-400">Regulatory Fines:</span><span class="font-bold text-red-400">$850k</span></div>
+                                <div class="pt-4 border-t border-red-900/30 flex justify-between"><span class="text-xs uppercase font-black">Total Exposure:</span><span class="text-xl font-black text-red-500" id="roi-total-red">$5.13M</span></div>
+                            </div>
+                        </div>
+                        <div class="card bg-green-600/5 border-green-600/20">
+                            <h3 class="text-[10px] font-black uppercase text-green-500 mb-6 tracking-widest">With SecureWipe</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-xs"><span class="text-slate-400">Wipe Protocol Cost:</span><span class="font-bold text-green-400">$12k</span></div>
+                                <div class="flex justify-between text-xs"><span class="text-slate-400">Remaining Risk:</span><span class="font-bold text-green-400">$0.00</span></div>
+                                <div class="pt-4 border-t border-green-900/30 flex justify-between"><span class="text-xs uppercase font-black">Annual Savings:</span><span class="text-xl font-black text-green-500" id="roi-savings">$5.11M</span></div>
+                            </div>
+                        </div>
+                        <div class="card col-span-2 h-48">
+                            <canvas id="roiChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="p-chain" class="page">
+                <div class="flex justify-between items-center mb-12">
+                    <div>
+                        <h2 class="text-3xl font-black uppercase">Immutable Certificate Chain</h2>
+                        <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Proof-of-Wipe Verification Ledger</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="verifyChain()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs font-black uppercase">Verify Integrity</button>
+                        <button onclick="tamperChain()" class="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg text-xs font-black uppercase">Simulate Tamper</button>
+                    </div>
+                </div>
+
+                <div id="blockchain-container" class="space-y-6 relative">
+                    </div>
+
+                <button onclick="addBlock()" class="mt-8 w-full py-4 border-2 border-dashed border-slate-700 rounded-xl hover:border-blue-500 hover:bg-blue-500/5 transition-all text-slate-500 font-bold uppercase text-xs">Add New Certificate Block</button>
+            </section>
+
+            <section id="p-hacker" class="page">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-black uppercase">Forensic Recovery Lab</h2>
+                    <div class="bg-slate-800 p-1 rounded-lg flex">
+                        <button id="target-unwiped" onclick="setHackerTarget(true)" class="px-6 py-2 rounded-md text-[10px] font-black uppercase bg-red-600 transition-all">Unwiped Target</button>
+                        <button id="target-wiped" onclick="setHackerTarget(false)" class="px-6 py-2 rounded-md text-[10px] font-black uppercase transition-all">Wiped Target</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-8">
+                    <div class="col-span-3 card bg-black p-6 mono text-green-500 text-sm h-[500px] overflow-y-auto shadow-inner" id="hacker-term">
+                        <div class="text-slate-500">[SYSTEM] Initialization complete. Select target and launch attack.</div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="card p-4">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase mb-4">Forensic Suite Status</h4>
+                            <div id="hacker-tools" class="space-y-3">
+                                <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-300">Recuva v2.1</span><span class="status text-[9px] font-black">IDLE</span></div>
+                                <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-300">Autopsy 4.1</span><span class="status text-[9px] font-black">IDLE</span></div>
+                                <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-300">EnCase Lab</span><span class="status text-[9px] font-black">IDLE</span></div>
+                                <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-300">FTK Imager</span><span class="status text-[9px] font-black">IDLE</span></div>
+                            </div>
+                        </div>
+                        <button onclick="launchAttack()" id="attack-btn" class="w-full py-6 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black uppercase tracking-widest shadow-xl transition-all">Launch Forensic Attack</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="p-breach" class="page">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-black uppercase">Parallel Universe Breach Sim</h2>
+                    <button onclick="runBreachSim()" id="sim-btn" class="mt-6 px-12 py-4 bg-blue-600 hover:bg-blue-700 rounded-full font-black text-lg uppercase shadow-2xl transition-transform active:scale-95">Simulate Breach Sequence</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-12 h-[500px] relative">
+                    <div id="sim-left" class="card bg-red-600/5 border-red-600/20 overflow-hidden relative flex flex-col items-center justify-center">
+                        <div class="absolute top-4 left-4 text-xs font-black text-red-500 uppercase">Without SecureWipe</div>
+                        <div id="sim-left-content" class="flex flex-col items-center gap-4 text-center">
+                            <div id="hacker-icon" class="text-6xl opacity-0">🏴‍☠️</div>
+                            <div id="laptop-icon" class="text-6xl">💻</div>
+                            <div id="breach-result-left" class="mt-4 text-red-500 font-black uppercase text-xl opacity-0"></div>
+                        </div>
+                        </div>
+
+                    <div id="sim-right" class="card bg-green-600/5 border-green-600/20 overflow-hidden relative flex flex-col items-center justify-center">
+                        <div class="absolute top-4 left-4 text-xs font-black text-green-500 uppercase">With SecureWipe</div>
+                        <div id="sim-right-content" class="flex flex-col items-center gap-4 text-center">
+                            <div id="shield-icon" class="text-6xl opacity-0">🛡️</div>
+                            <div id="wiped-laptop-icon" class="text-6xl">💻</div>
+                            <div id="breach-result-right" class="mt-4 text-green-500 font-black uppercase text-xl opacity-0"></div>
+                        </div>
+                    </div>
+
+                    <div id="sim-vs" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-slate-900 border-4 border-slate-700 rounded-full flex items-center justify-center font-black italic text-xl z-10">VS</div>
+                </div>
+            </section>
+
+            <section id="p-ai" class="page">
+                <div class="max-w-4xl mx-auto h-[600px] card flex flex-col p-0 overflow-hidden">
+                    <div class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">🤖</div>
+                            <div><h3 class="font-black text-sm uppercase">AI Security Assistant</h3><p class="text-[9px] text-blue-400 font-bold uppercase">Claude-3.5-Sonnet Optimized</p></div>
+                        </div>
+                    </div>
+                    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
+                        <div class="flex gap-3">
+                            <div class="w-8 h-8 bg-slate-700 rounded flex items-center justify-center text-xs">AI</div>
+                            <div class="max-w-[70%] bg-slate-800 p-4 rounded-2xl rounded-tl-none text-xs leading-relaxed text-slate-300">
+                                Hello! I am the SecureWipe AI. I am trained on DoD 5220.22-M, NIST 800-88, and GDPR standards. I can help analyze your regional nodes or suggest wipe methods. What is your query?
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6 border-t border-slate-700 bg-slate-800/50">
+                        <div class="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
+                            <button onclick="aiAsk('Which wipe method for a Finance SSD?')" class="whitespace-nowrap px-4 py-2 bg-slate-700 hover:bg-blue-600 rounded-full text-[10px] font-bold transition-all">Finance SSD Method?</button>
+                            <button onclick="aiAsk('Explain DoD vs Gutmann')" class="whitespace-nowrap px-4 py-2 bg-slate-700 hover:bg-blue-600 rounded-full text-[10px] font-bold transition-all">DoD vs Gutmann</button>
+                            <button onclick="aiAsk('GDPR Article 17 Requirements')" class="whitespace-nowrap px-4 py-2 bg-slate-700 hover:bg-blue-600 rounded-full text-[10px] font-bold transition-all">GDPR Art. 17</button>
+                        </div>
+                        <div class="flex gap-3">
+                            <input type="text" id="ai-input" placeholder="Ask AI about compliance, risk, or wipe standards..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="aiSend()" class="p-3 bg-blue-600 rounded-xl">📤</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="bg-blue-600 h-full px-6 flex items-center gap-2 font-black text-[10px] uppercase italic">
+                <span class="animate-pulse">●</span> Live Audit
+            </div>
+            <div class="ticker-text px-6">
+                [AUDIT] SECUREWIPE NODE BNG-NORTH VERIFIED COMPLIANT ... [ALERT] UNWIPED DRIVE DETECTED IN STORAGE SECTOR 7 ... [MARKET] IBM REPORTS AVERAGE BREACH COST INCREASED TO $4.88M ... [PQC] CRYSTALS-DILITHIUM KEY GENERATION SUCCESSFUL ...
+            </div>
+        </footer>
+    </div>
+
+    <div onclick="showPage('voice', document.querySelector('.nav-item:nth-child(3)'))" class="fixed bottom-16 right-10 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center text-2xl shadow-2xl cursor-pointer hover:scale-110 transition-all z-[999] animate-bounce">
+        🎤
+    </div>
+
+    <div id="wipe-modal" class="modal-overlay">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[600px] overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-black uppercase">Sanitize Device</h3>
+                <button onclick="closeModal()" class="text-slate-500 hover:text-white">✕</button>
+            </div>
+            <div id="modal-body" class="p-10">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        /* CORE APP CONTROLLER */
+        const state = {
+            activePage: 'dash',
+            isListening: false,
+            hackerTargetUnwiped: true,
+            networkNodes: [],
+            entropyRunning: false
+        };
+
+        function initApp() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            setInterval(tickExposure, 3000);
+            initNetworkGraph();
+            updateROI();
+            initBlockchain();
+            initNeuralNet();
+        }
+
+        function updateClock() {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB');
+        }
+
+        function tickExposure() {
+            const el = document.getElementById('dash-exposure');
+            let val = parseInt(el.innerText.replace(/[$,]/g, ''));
+            val += Math.floor(Math.random() * 1000);
+            el.innerText = '$' + val.toLocaleString();
+        }
+
+        function showPage(id, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('nav-active'));
+            document.getElementById('p-' + id).classList.add('active');
+            if (el) el.classList.add('nav-active');
+            state.activePage = id;
+            if (id === 'entropy') initEntropyChart();
+            if (id === 'ghost') initGhosts();
+        }
+
+        /* 1. DASHBOARD NETWORK GRAPH */
+        function initNetworkGraph() {
+            const canvas = document.getElementById('networkCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 400;
+
+            const nodes = [];
+            for (let i = 0; i < 20; i++) {
+                nodes.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 1,
+                    vy: (Math.random() - 0.5) * 1,
+                    secured: Math.random() > 0.3,
+                    radius: 8 + Math.random() * 10
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                nodes.forEach((n, i) => {
+                    n.x += n.vx; n.y += n.vy;
+                    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+                    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+
+                    // Draw Connections
+                    nodes.slice(i+1).forEach(m => {
+                        const dist = Math.hypot(n.x - m.x, n.y - m.y);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(51, 65, 85, ${1 - dist/120})`;
+                            ctx.moveTo(n.x, n.y); ctx.lineTo(m.x, m.y); ctx.stroke();
+                        }
+                    });
+
+                    // Draw Node
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = n.secured ? '#16a34a' : '#dc2626';
+                    if (!n.secured) {
+                        ctx.shadowBlur = 15; ctx.shadowColor = '#dc2626';
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+            state.networkNodes = nodes;
+            animate();
+        }
+
+        function triggerGlobalPurge() {
+            const btn = document.getElementById('global-purge-btn');
+            btn.innerText = "PURGING...";
+            btn.classList.remove('bg-red-600');
+            btn.classList.add('bg-orange-600');
+            
+            let count = 0;
+            const timer = setInterval(() => {
+                const unwiped = state.networkNodes.find(n => !n.secured);
+                if (unwiped) {
+                    unwiped.secured = true;
+                    count++;
+                } else {
+                    clearInterval(timer);
+                    btn.innerText = "OPERATION COMPLETE";
+                    btn.classList.remove('bg-orange-600');
+                    btn.classList.add('bg-green-600');
+                    setTimeout(() => {
+                        btn.innerText = "EXECUTE DESTRUCTION";
+                        btn.classList.add('bg-red-600');
+                        btn.classList.remove('bg-green-600');
+                    }, 5000);
+                }
+            }, 300);
+        }
+
+        /* 2. USB RADAR / MODAL */
+        function openWipeModal(name) {
+            const overlay = document.getElementById('wipe-modal');
+            overlay.style.display = 'flex';
+            renderWipeStep(1, name);
+        }
+
+        function renderWipeStep(step, name) {
+            const body = document.getElementById('modal-body');
+            if (step === 1) {
+                body.innerHTML = `
+                    <p class="text-xs text-slate-400 mb-6">Select Sanitization Protocol for <b class="text-white">${name}</b>:</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div onclick="renderWipeStep(2, '${name}')" class="p-4 bg-slate-800 border border-slate-700 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
+                            <h5 class="font-black text-xs uppercase mb-1">NIST 800-88 Clear</h5>
+                            <p class="text-[9px] text-slate-500">Single pass overwrite with verification. Standard security.</p>
+                        </div>
+                        <div onclick="renderWipeStep(2, '${name}')" class="p-4 bg-slate-800 border border-slate-700 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
+                            <h5 class="font-black text-xs uppercase mb-1">DoD 5220.22-M</h5>
+                            <p class="text-[9px] text-slate-500">3-Pass protocol (Zeros, Ones, Random). Military grade.</p>
+                        </div>
+                    </div>
+                `;
+            } else if (step === 2) {
+                body.innerHTML = `
+                    <div class="text-center">
+                        <div class="text-6xl mb-6">⚠️</div>
+                        <h4 class="font-black text-lg uppercase mb-2">Confirm Irreversible Wipe</h4>
+                        <p class="text-xs text-slate-400 mb-8">This will permanently destroy all 2,847 files on ${name}. This action cannot be undone.</p>
+                        <button onclick="renderWipeStep(3, '${name}')" class="px-10 py-3 bg-red-600 rounded-lg font-black uppercase text-xs tracking-widest">Start Overwrite</button>
+                    </div>
+                `;
+            } else if (step === 3) {
+                body.innerHTML = `
+                    <div class="bg-black p-4 mono text-[10px] text-green-500 h-40 overflow-y-auto mb-6" id="modal-term"></div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="modal-progress" class="h-full bg-blue-500 w-0 transition-all duration-300"></div>
+                    </div>
+                `;
+                let p = 0;
+                const term = document.getElementById('modal-term');
+                const bar = document.getElementById('modal-progress');
+                const t = setInterval(() => {
+                    p += 5;
+                    bar.style.width = p + '%';
+                    term.innerHTML += `<div>Sector 0x${Math.floor(Math.random()*9999).toString(16)}... VERIFIED ZERO</div>`;
+                    term.scrollTop = term.scrollHeight;
+                    if (p >= 100) {
+                        clearInterval(t);
+                        renderWipeStep(4, name);
+                    }
+                }, 100);
+            } else if (step === 4) {
+                body.innerHTML = `
+                    <div class="text-center">
+                        <div class="text-6xl text-green-500 mb-6">✔</div>
+                        <h4 class="font-black text-lg uppercase mb-2">Sanitization Complete</h4>
+                        <div class="p-4 bg-slate-800 rounded-xl mb-8 mono text-[10px] text-left">
+                            ID: SW-CERT-2026-X9<br>HASH: 8e3c...7f4a<br>STATUS: NIST COMPLIANT
+                        </div>
+                        <button onclick="closeModal()" class="px-10 py-3 bg-blue-600 rounded-lg font-black uppercase text-xs tracking-widest">Close</button>
+                    </div>
+                `;
+            }
+        }
+
+        function closeModal() { document.getElementById('wipe-modal').style.display = 'none'; }
+
+        /* 3. VOICE COMMANDER ENGINE */
+        let recognition;
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.onresult = (event) => {
+                const cmd = event.results[0][0].transcript.toLowerCase();
+                processVoiceCommand(cmd);
+            };
+            recognition.onend = () => {
+                document.getElementById('mic-btn').classList.remove('mic-listening');
+                state.isListening = false;
+            };
+        }
+
+        function toggleVoice() {
+            if (state.isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                document.getElementById('mic-btn').classList.add('mic-listening');
+                state.isListening = true;
+                const bars = document.getElementById('waveform');
+                bars.innerHTML = '';
+                bars.style.opacity = 1;
+                for(let i=0; i<30; i++) {
+                    const b = document.createElement('div');
+                    b.className = 'v-bar';
+                    b.style.height = '10px';
+                    bars.appendChild(b);
+                }
+                animateWaveform();
+            }
+        }
+
+        function animateWaveform() {
+            if (!state.isListening) return;
+            document.querySelectorAll('.v-bar').forEach(b => {
+                b.style.height = (Math.random() * 50 + 10) + 'px';
+            });
+            setTimeout(animateWaveform, 100);
+        }
+
+        function processVoiceCommand(cmd) {
+            const transcript = document.getElementById('transcript-box');
+            transcript.innerHTML = `<div class="text-blue-400"><b>You:</b> "${cmd}"</div>` + transcript.innerHTML;
+            
+            const speak = (msg) => {
+                const speech = new SpeechSynthesisUtterance(msg);
+                window.speechSynthesis.speak(speech);
+                transcript.innerHTML = `<div class="text-slate-400 italic"><b>System:</b> ${msg}</div>` + transcript.innerHTML;
+            };
+
+            if (cmd.includes('scan')) { showPage('usb'); speak("Hardware radar scan initiated."); }
+            else if (cmd.includes('wipe')) { openWipeModal('Voice Target'); speak("Please confirm sanitization protocol."); }
+            else if (cmd.includes('dash')) { showPage('dash'); speak("Returning to command dashboard."); }
+            else if (cmd.includes('hacker')) { showPage('hacker'); speak("Opening forensic laboratory."); }
+            else if (cmd.includes('report')) { downloadReport(); speak("Generating liability report."); }
+            else if (cmd.includes('help')) { speak("Commands are scan, wipe, dashboard, hacker, and report."); }
+            else { speak("Command not recognized."); }
+        }
+
+        function simulateVoice(cmd) { processVoiceCommand(cmd); }
+
+        function downloadReport() {
+            const text = "SECUREWIPE COMPLIANCE REPORT\nDATE: 2026-03-30\nSTATUS: ALL NODES COMPLIANT\nLIABILITY MITIGATED: $5.11M";
+            const blob = new Blob([text], {type: 'text/plain'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'SecureWipe_Report.txt'; a.click();
+        }
+
+        /* 4. ENTROPY LIVE CHART */
+        let entropyChart;
+        function initEntropyChart() {
+            if (entropyChart) return;
+            const ctx = document.getElementById('entropyChart').getContext('2d');
+            entropyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 30}, (_, i) => i),
+                    datasets: [
+                        { label: 'Boot Sectors', data: [1.2], borderColor: '#60a5fa', tension: 0.4 },
+                        { label: 'File Table', data: [2.8], borderColor: '#34d399', tension: 0.4 },
+                        { label: 'User Data', data: [3.5], borderColor: '#f472b6', tension: 0.4 },
+                        { label: 'Slack Space', data: [4.1], borderColor: '#a78bfa', tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 8, grid: { color: '#334155' } }, x: { display: false } },
+                    plugins: { legend: { labels: { color: '#94a3b8' } } }
+                }
+            });
+        }
+
+        function startEntropyTest() {
+            if (state.entropyRunning) return;
+            state.entropyRunning = true;
+            document.getElementById('entropy-btn').innerText = "ANALYZING...";
+            
+            let i = 0;
+            const t = setInterval(() => {
+                entropyChart.data.datasets.forEach((ds, idx) => {
+                    const current = ds.data[ds.data.length - 1];
+                    const next = Math.min(7.99, current + (Math.random() * 0.3));
+                    ds.data.push(next);
+                });
+                
+                const avg = entropyChart.data.datasets.reduce((acc, ds) => acc + ds.data[ds.data.length-1], 0) / 4;
+                document.getElementById('entropy-number').innerText = avg.toFixed(2);
+                document.getElementById('stat-mean').innerText = avg.toFixed(2);
+                document.getElementById('stat-prob').innerText = (100 - (avg/7.99)*100).toFixed(1) + '%';
+                
+                entropyChart.update();
+                i++;
+                if (i > 30) {
+                    clearInterval(t);
+                    document.getElementById('entropy-btn').innerText = "WIPE VERIFIED";
+                    document.getElementById('entropy-btn').classList.add('bg-green-600');
+                }
+            }, 500);
+        }
+
+        /* 5. GHOST VISUALIZER */
+        function initGhosts() {
+            const stage = document.getElementById('ghost-stage');
+            const counter = document.getElementById('ghost-counter');
+            if (stage.querySelectorAll('.ghost').length > 0) return;
+
+            const files = ['salary.xlsx', 'passwords.txt', 'medical.pdf', 'SSN_list.db', 'client_data.zip'];
+            for(let i=0; i<20; i++) {
+                const g = document.createElement('div');
+                g.className = 'ghost flex flex-col items-center';
+                g.innerHTML = `<span class="text-2xl opacity-60">📄</span><span class="text-[8px] mono text-slate-500">${files[i%5]}</span>`;
+                g.style.left = Math.random() * 80 + 10 + '%';
+                g.style.top = Math.random() * 80 + 10 + '%';
+                stage.appendChild(g);
+                animateGhost(g);
+            }
+        }
+
+        function animateGhost(el) {
+            if (!el) return;
+            const x = (Math.random() - 0.5) * 50;
+            const y = (Math.random() - 0.5) * 50;
+            el.style.transform = `translate(${x}px, ${y}px)`;
+            setTimeout(() => animateGhost(el), 2000);
+        }
+
+        function exorciseGhosts() {
+            const ghosts = document.querySelectorAll('.ghost');
+            const counter = document.getElementById('ghost-counter');
+            let count = 2847;
+            
+            ghosts.forEach((g, i) => {
+                setTimeout(() => g.classList.add('vaporize'), i * 100);
+            });
+
+            const t = setInterval(() => {
+                count -= 83;
+                if (count <= 0) {
+                    count = 0; clearInterval(t);
+                    document.getElementById('hdd-visual').innerHTML += '<div class="absolute inset-0 flex items-center justify-center text-green-500 font-black text-2xl border-4 border-green-500 rounded-full bg-green-500/10 scale-125 transition-transform">FORENSICALLY CLEAN</div>';
+                }
+                counter.innerText = count;
+            }, 100);
+        }
+
+        /* 6. NEURAL RISK ENGINE */
+        function initNeuralNet() {
+            const canvas = document.getElementById('neuralCanvas');
+            const ctx = canvas.getContext('2d');
+            const layers = [5, 8, 6, 1];
+            
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const padding = 50;
+                const layerGap = (canvas.width - padding*2) / (layers.length - 1);
+                
+                // Draw connections
+                layers.forEach((nodes, l) => {
+                    if (l === layers.length - 1) return;
+                    const nextNodes = layers[l+1];
+                    const x1 = padding + l * layerGap;
+                    const x2 = padding + (l+1) * layerGap;
+                    
+                    for (let i=0; i<nodes; i++) {
+                        const y1 = padding + i * (canvas.height - padding*2) / (nodes - 1 || 1);
+                        for (let j=0; j<nextNodes; j++) {
+                            const y2 = padding + j * (canvas.height - padding*2) / (nextNodes - 1 || 1);
+                            ctx.beginPath();
+                            ctx.strokeStyle = '#334155';
+                            ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+                        }
+                    }
+                });
+
+                // Draw Nodes
+                layers.forEach((nodes, l) => {
+                    const x = padding + l * layerGap;
+                    for (let i=0; i<nodes; i++) {
+                        const y = padding + i * (canvas.height - padding*2) / (nodes - 1 || 1);
+                        ctx.beginPath();
+                        ctx.arc(x, y, 8, 0, Math.PI*2);
+                        ctx.fillStyle = (l === 0) ? '#60a5fa' : (l === layers.length-1) ? '#22c55e' : '#1e293b';
+                        ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2;
+                        ctx.fill(); ctx.stroke();
+                    }
+                });
+            }
+            draw();
+            document.querySelectorAll('.risk-in').forEach(i => i.oninput = () => {
+                const score = Math.floor(Math.random() * 80) + 10;
+                const el = document.getElementById('risk-out-val');
+                el.innerText = score + '%';
+                el.className = 'text-7xl font-black ' + (score > 70 ? 'text-red-500' : score > 40 ? 'text-yellow-500' : 'text-green-500');
+                document.getElementById('risk-level').innerText = score > 70 ? 'Critical' : score > 40 ? 'Medium Risk' : 'Low Risk';
+            });
+        }
+
+        /* 7. ROI CALCULATOR */
+        let roiChart;
+        function updateROI() {
+            const n = document.getElementById('roi-n').value;
+            const s = document.getElementById('roi-s').value;
+            const i = document.getElementById('roi-i').value;
+            
+            document.getElementById('roi-n-val').innerText = n;
+            const labels = ['Public', 'Internal', 'Confidential', 'Secret', 'Top Secret'];
+            document.getElementById('roi-s-val').innerText = labels[s-1];
+
+            const baseCost = 4.88; // million
+            const exposure = (baseCost * i * (s/3) * (n/50)).toFixed(2);
+            document.getElementById('roi-b-cost').innerText = '$' + exposure + 'M';
+            document.getElementById('roi-total-red').innerText = '$' + (parseFloat(exposure) + 0.85).toFixed(2) + 'M';
+            document.getElementById('roi-savings').innerText = '$' + (parseFloat(exposure) + 0.83).toFixed(2) + 'M';
+
+            if (!roiChart) {
+                const ctx = document.getElementById('roiChart').getContext('2d');
+                roiChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Without SecureWipe', 'With SecureWipe'],
+                        datasets: [{ data: [exposure, 0.05], backgroundColor: ['#dc2626', '#16a34a'] }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            } else {
+                roiChart.data.datasets[0].data = [exposure, 0.05];
+                roiChart.update();
+            }
+        }
+
+        /* 8. BLOCKCHAIN LOGS */
+        let chain = [];
+        function initBlockchain() {
+            for(let i=0; i<3; i++) addBlock();
+        }
+
+        function addBlock() {
+            const container = document.getElementById('blockchain-container');
+            const prevHash = chain.length ? chain[chain.length-1].hash : "0000000000000000";
+            const newBlock = {
+                id: chain.length,
+                sn: 'SN-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                hash: Math.random().toString(16).substr(2, 16),
+                prev: prevHash
+            };
+            chain.push(newBlock);
+            
+            const div = document.createElement('div');
+            div.className = 'card border-l-4 border-green-500 blockchain-block opacity-0 translate-y-4 transition-all duration-500';
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h4 class="font-black text-xs">Device: Storage Node ${newBlock.id}</h4>
+                        <p class="text-[9px] mono text-slate-500">Serial: ${newBlock.sn}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2 py-1 bg-green-500/10 text-green-500 text-[8px] font-black rounded uppercase">Verified</span>
+                    </div>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-4 mono text-[8px]">
+                    <div class="bg-black/30 p-2 rounded">PREV: ${newBlock.prev}</div>
+                    <div class="bg-black/30 p-2 rounded">HASH: ${newBlock.hash}</div>
+                </div>
+            `;
+            container.appendChild(div);
+            setTimeout(() => div.classList.remove('opacity-0', 'translate-y-4'), 100);
+        }
+
+        function verifyChain() {
+            const blocks = document.querySelectorAll('.blockchain-block');
+            blocks.forEach((b, i) => {
+                setTimeout(() => {
+                    b.classList.add('ring-2', 'ring-blue-500');
+                    setTimeout(() => b.classList.remove('ring-2', 'ring-blue-500'), 500);
+                }, i * 300);
+            });
+        }
+
+        function tamperChain() {
+            const blocks = document.querySelectorAll('.blockchain-block');
+            const target = blocks[1];
+            target.classList.remove('border-green-500');
+            target.classList.add('border-red-500', 'animate-shake');
+            target.querySelector('.bg-green-500\\/10').className = 'px-2 py-1 bg-red-500/10 text-red-500 text-[8px] font-black rounded uppercase';
+            target.querySelector('.bg-red-500\\/10').innerText = 'Tampered';
+        }
+
+        /* 9. HACKER LAB */
+        function setHackerTarget(isUnwiped) {
+            state.hackerTargetUnwiped = isUnwiped;
+            document.getElementById('target-unwiped').classList.toggle('bg-red-600', isUnwiped);
+            document.getElementById('target-wiped').classList.toggle('bg-red-600', !isUnwiped);
+        }
+
+        function launchAttack() {
+            const term = document.getElementById('hacker-term');
+            const btn = document.getElementById('attack-btn');
+            btn.disabled = true;
+            term.innerHTML = `<div class="text-blue-400 font-bold uppercase">[SYSTEM] Starting Forensic Audit on ${state.hackerTargetUnwiped ? 'Unwiped' : 'Wiped'} Target...</div>`;
+            
+            const steps = state.hackerTargetUnwiped ? [
+                "Scanning unallocated sectors...",
+                "MFT Records identified: 4821",
+                "RECOVERED: salary_2024.xlsx [412KB]",
+                "RECOVERED: medical_records.pdf [1.2MB]",
+                "RECOVERED: db_passwords.sql [44KB]",
+                "ATTACK COMPLETE: 2847 FILES RECOVERED"
+            ] : [
+                "Scanning sectors 0-2048...",
+                "Error: Sector Unreadable (Bit Entropy Too High)",
+                "Running Pattern Match Carving...",
+                "No known file signatures detected.",
+                "ATTACK FAILED: 0 FILES RECOVERED",
+                "TARGET IS FORENSICALLY CLEAN"
+            ];
+
+            let i = 0;
+            const t = setInterval(() => {
+                term.innerHTML += `<div>> ${steps[i]}</div>`;
+                term.scrollTop = term.scrollHeight;
+                i++;
+                if (i >= steps.length) {
+                    clearInterval(t);
+                    btn.disabled = false;
+                    if (state.hackerTargetUnwiped) {
+                        term.innerHTML += `<div class="mt-4 p-2 bg-red-500/20 text-red-500 font-black">18.4 GB OF SENSITIVE DATA EXPOSED</div>`;
+                    } else {
+                        term.innerHTML += `<div class="mt-4 p-2 bg-green-500/20 text-green-500 font-black">COMPLIANCE VERIFIED: ZERO DATA LEAK</div>`;
+                    }
+                }
+            }, 800);
+        }
+
+        /* 10. BREACH SIMULATOR */
+        function runBreachSim() {
+            const btn = document.getElementById('sim-btn');
+            btn.disabled = true;
+            btn.innerText = "SIMULATING...";
+            
+            const left = document.getElementById('sim-left-content');
+            const right = document.getElementById('sim-right-content');
+            
+            // Animation sequence
+            setTimeout(() => {
+                document.getElementById('hacker-icon').style.opacity = 1;
+                document.getElementById('shield-icon').style.opacity = 1;
+            }, 1000);
+
+            setTimeout(() => {
+                // Stream files on left
+                for(let i=0; i<10; i++) {
+                    const f = document.createElement('div');
+                    f.className = 'absolute text-xs animate-ping';
+                    f.innerText = '📄';
+                    f.style.left = '50%'; f.style.top = '50%';
+                    document.getElementById('sim-left').appendChild(f);
+                    setTimeout(() => f.remove(), 2000);
+                }
+            }, 2000);
+
+            setTimeout(() => {
+                const resL = document.getElementById('breach-result-left');
+                const resR = document.getElementById('breach-result-right');
+                resL.innerText = "FINES: $4.2M\nDATA LEAKED"; resL.style.opacity = 1;
+                resR.innerText = "FINES: $0.00\nCOMPLIANT"; resR.style.opacity = 1;
+                btn.innerText = "SIMULATION COMPLETE";
+            }, 5000);
+        }
+
+        /* 11. AI SECURITY ASSISTANT */
+        function aiSend() {
+            const input = document.getElementById('ai-input');
+            const msg = input.value;
+            if (!msg) return;
+            
+            const chat = document.getElementById('chat-box');
+            chat.innerHTML += `
+                <div class="flex gap-3 justify-end">
+                    <div class="max-w-[70%] bg-blue-600 p-4 rounded-2xl rounded-tr-none text-xs leading-relaxed text-white">
+                        ${msg}
+                    </div>
+                </div>
+            `;
+            input.value = '';
+            
+            // AI Fallback Logic
+            setTimeout(() => {
+                let response = "Based on NIST 800-88 guidelines, a 'Purge' level sanitization is required for the devices you mentioned to ensure data is unrecoverable even by state-level forensic laboratories.";
+                if (msg.toLowerCase().includes('finance')) response = "For Finance department SSDs, I recommend Cryptographic Erasure (CE) followed by a 3-pass overwrite to comply with both SOX and GDPR Article 17.";
+                if (msg.toLowerCase().includes('gdpr')) response = "GDPR Article 17 (Right to Erasure) requires proof of destruction. SecureWipe Elite generates immutable certificates to satisfy these specific regulatory audits.";
+
+                chat.innerHTML += `
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 bg-slate-700 rounded flex items-center justify-center text-xs">AI</div>
+                        <div class="max-w-[70%] bg-slate-800 p-4 rounded-2xl rounded-tl-none text-xs leading-relaxed text-slate-300">
+                            ${response}
+                        </div>
+                    </div>
+                `;
+                chat.scrollTop = chat.scrollHeight;
+            }, 1000);
+        }
+        function aiAsk(q) { document.getElementById('ai-input').value = q; aiSend(); }
+
+    </script>
+</body>
+</html>
